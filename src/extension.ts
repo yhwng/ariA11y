@@ -1,6 +1,11 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
+import * as dotenv from "dotenv";
+import * as path from "path";
+
+// Load .env file
+dotenv.config({ path: path.join(__dirname, "..", ".env") });
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
