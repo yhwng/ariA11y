@@ -6,7 +6,7 @@ const axios = require("axios");
 
 // Build the endpoint using environment variables
 const apiKey = process.env.AZURE_API_KEY;
-const endpoint = `${process.env.AZURE_ENDPOINT}/openai/deployments/chat-deployment/chat/completions?api-version=2024-08-01-preview`;
+const endpoint = `${process.env.AZURE_ENDPOINT}/openai/deployments/gpt-4o-mini/chat/completions?api-version=2024-08-01-preview`;
 
 // Log the endpoint to debug
 console.log("Resolved endpoint:", endpoint);

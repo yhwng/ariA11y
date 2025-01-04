@@ -65,18 +65,20 @@ function createChatWebview(context: vscode.ExtensionContext) {
 async function getAIResponse(userInput: string): Promise<string> {
   const endpoint = process.env.AZURE_ENDPOINT;
   const apiKey = process.env.AZURE_API_KEY;
-  const deploymentName = "chat-deployment"; // Replace with your deployment name
-  const apiVersion = "2023-05-15"; // Use the version you set up
+  const deploymentName = "gpt-4o-mini"; // Replace with your deployment name
+  const apiVersion = "2024-08-01-preview"; // Use the version you provided
 
-  const url = `${endpoint}/openai/deployments/${deploymentName}/completions?api-version=${apiVersion}`;
+  const url = `${endpoint}/openai/deployments/${deploymentName}/chat/completions?api-version=${apiVersion}`;
 
   try {
     const response = await axios.post(
       url,
       {
-        prompt: `You are a helpful assistant. Respond in clear and concise natural language. Question: "${userInput}"`,
-
-        max_tokens: 10, // Increased for better responses
+        messages: [
+          { role: "system", content: "You are a helpful assistant." },
+          { role: "user", content: userInput },
+        ],
+        max_tokens: 50, // Increased for better responses
         temperature: 0.7,
       },
       {
@@ -88,7 +90,7 @@ async function getAIResponse(userInput: string): Promise<string> {
     );
 
     console.log("Raw Azure OpenAI Response:", response.data);
-    return response.data.choices[0].text.trim();
+    return response.data.choices[0].message.content.trim(); // Adjusted for chat model response format
   } catch (error) {
     if (axios.isAxiosError(error)) {
       console.error(
