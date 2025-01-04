@@ -1,12 +1,15 @@
 import * as dotenv from "dotenv";
 import axios from "axios";
 
-dotenv.config({ path: path.join(__dirname, "..", ".env") });
+// Load environment variables
+dotenv.config();
 
-const apiKey = process.env.AZURE_API_KEY_1;
+// Retrieve credentials from .env
+const apiKey = process.env.azure_api_key;
 const endpoint = process.env.AZURE_ENDPOINT;
-const deploymentName = "chat-ariA11y"; // Updated with your deployment name
+const deploymentName = "chat-ariA11y"; // Replace with your deployment name
 
+// Function to test the Azure OpenAI API
 async function testAzureOpenAI() {
   try {
     const response = await axios.post(
@@ -22,13 +25,11 @@ async function testAzureOpenAI() {
         },
       }
     );
-    console.log("Response:", response.data);
-  } catch (error: any) {
-    console.error(
-      "Error testing Azure OpenAI API:",
-      error.response?.data || error.message
-    );
+    console.log("Response from Azure OpenAI API:", response.data);
+  } catch (error) {
+    console.error("Error connecting to Azure OpenAI API:", error);
   }
 }
 
+// Run the test function
 testAzureOpenAI();
