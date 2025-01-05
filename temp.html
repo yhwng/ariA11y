@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Chat</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 10px;
+        background-color: #1f1f1f;
+      }
+      .chat-container {
+        display: flex;
+        flex-direction: column;
+        height: 90vh;
+      }
+      .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        padding: 10px;
+        margin-bottom: 10px;
+      }
+      .message {
+        margin-bottom: 10px;
+        padding: 5px;
+        border-radius: 5px;
+      }
+      .user-message {
+        align-self: flex-end;
+        text-align: right;
+      }
+      .ai-message {
+        align-self: flex-start;
+        text-align: left;
+      }
+      .chat-input {
+        display: flex;
+      }
+      .chat-input textarea {
+        flex: 1;
+        height: 50px;
+        padding: 5px;
+        background-color: #1f1f1f;
+        color: rgb(244, 244, 244);
+      }
+      .chat-input button {
+        padding: 5px 10px;
+        margin-left: 5px;
+        background-color: #1f1f1f;
+        color: rgb(244, 244, 244);
+      }
+      .loading {
+        font-size: 0.9em;
+        color: gray;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="chat-container">
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-input">
+        <textarea id="chatInput" placeholder="Type your message..."></textarea>
+        <button id="sendButton">Send</button>
+      </div>
+    </div>
+    <script>
+      const vscode = acquireVsCodeApi();
+      const chatMessages = document.getElementById("chatMessages");
+
+      function addMessage(content, isUser = false, isLoading = false) {
+        const messageDiv = document.createElement("div");
+        messageDiv.className = isUser
+          ? "message user-message"
+          : "message ai-message";
+        messageDiv.textContent = isLoading ? "..." : content;
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll
+      }
+
+      document.getElementById("sendButton").addEventListener("click", () => {
+        const input = document.getElementById("chatInput");
+        const message = input.value.trim();
+        if (message) {
+          addMessage(message, true); // Add user message
+          addMessage("", false, true); // Add loading indicator
+          vscode.postMessage({ type: "message", text: message });
+          input.value = "";
+        }
+      });
+
+      window.addEventListener("message", (event) => {
+        const message = event.data;
+        const loadingIndicator = chatMessages.querySelector(
+          ".ai-message:last-child"
+        );
+        if (loadingIndicator) loadingIndicator.remove(); // Remove loading
+
+        if (message.text) {
+          addMessage(message.text, false); // Add AI message
+        }
+      });
+    </script>
+  </body>
+</html>

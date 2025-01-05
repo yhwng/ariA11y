@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Chat</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 10px;
+        background-color: #1f1f1f;
+      }
+      .chat-container {
+        display: flex;
+        flex-direction: column;
+        height: 90vh;
+        /* background-color: #1F1F1F; */
+      }
+      .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        padding: 10px;
+        margin-bottom: 10px;
+      }
+      .chat-input {
+        display: flex;
+      }
+      .chat-input textarea {
+        flex: 1;
+        height: 50px;
+        padding: 5px;
+        background-color: #1f1f1f;
+      }
+      .chat-input button {
+        padding: 5px 10px;
+        margin-left: 5px;
+        background-color: #1f1f1f;
+        color: rgb(243, 243, 243);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="chat-container">
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-input">
+        <textarea id="chatInput" placeholder="Type your message..."></textarea>
+        <button id="sendButton">Send</button>
+      </div>
+    </div>
+    <script>
+      const vscode = acquireVsCodeApi();
+
+      // Handle the send button click
+      document.getElementById("sendButton").addEventListener("click", () => {
+        const input = document.getElementById("chatInput");
+        const message = input.value.trim();
+        if (message) {
+          console.log("Sending message:", message); // Debug log
+          vscode.postMessage({ type: "message", text: message });
+          input.value = ""; // Clear the input
+        }
+      });
+
+      // Listen for messages from the extension
+      window.addEventListener("message", (event) => {
+        const message = event.data;
+        console.log("Received message:", message); // Debug log
+        if (message.text) {
+          const chatMessages = document.getElementById("chatMessages");
+          const newMessage = document.createElement("div");
+          newMessage.textContent = message.text;
+          newMessage.style.marginBottom = "5px";
+          chatMessages.appendChild(newMessage);
+
+          // Auto-scroll to the bottom
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+      });
+    </script>
+  </body>
+</html>

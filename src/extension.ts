@@ -1,23 +1,14 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
 import * as dotenv from "dotenv";
 import * as path from "path";
 import axios from "axios";
 
-// Load .env file
-dotenv.config({ path: path.join(__dirname, "..", ".env") });
+dotenv.config({ path: path.join(__dirname, "..", ".env") }); // Load .env file
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-  // Use the console to output diagnostic information (console.log) and errors (console.error)
-  // This line of code will only be executed once when your extension is activated
   console.log('Congratulations, your extension "aria11y" is now active!');
 
-  // Register the command to open the Webview
   const disposable = vscode.commands.registerCommand("ai-chat.openChat", () => {
-    // Call the function to create the Webview
     createChatWebview(context);
   });
 
@@ -26,15 +17,14 @@ export function activate(context: vscode.ExtensionContext) {
 
 function createChatWebview(context: vscode.ExtensionContext) {
   const panel = vscode.window.createWebviewPanel(
-    "aiChat", // Identifies the type of the Webview
-    "AI Chat", // Title displayed on the tab
-    vscode.ViewColumn.One, // Editor column to show the new Webview
+    "aiChat",
+    "AI Chat",
+    vscode.ViewColumn.One,
     {
       enableScripts: true, // Enable JavaScript in the Webview
     }
   );
 
-  // Set the Webview's HTML content
   panel.webview.html = getWebviewContent();
 
   panel.webview.onDidReceiveMessage(
@@ -65,8 +55,8 @@ function createChatWebview(context: vscode.ExtensionContext) {
 async function getAIResponse(userInput: string): Promise<string> {
   const endpoint = process.env.AZURE_ENDPOINT;
   const apiKey = process.env.AZURE_API_KEY;
-  const deploymentName = "gpt-4o-mini"; // Replace with your deployment name
-  const apiVersion = "2024-08-01-preview"; // Use the version you provided
+  const deploymentName = "gpt-4o-mini";
+  const apiVersion = "2024-08-01-preview";
 
   const url = `${endpoint}/openai/deployments/${deploymentName}/chat/completions?api-version=${apiVersion}`;
 
@@ -78,7 +68,7 @@ async function getAIResponse(userInput: string): Promise<string> {
           { role: "system", content: "You are a helpful assistant." },
           { role: "user", content: userInput },
         ],
-        max_tokens: 50, // Increased for better responses
+        max_tokens: 50,
         temperature: 0.7,
       },
       {
@@ -90,7 +80,7 @@ async function getAIResponse(userInput: string): Promise<string> {
     );
 
     console.log("Raw Azure OpenAI Response:", response.data);
-    return response.data.choices[0].message.content.trim(); // Adjusted for chat model response format
+    return response.data.choices[0].message.content.trim();
   } catch (error) {
     if (axios.isAxiosError(error)) {
       console.error(
@@ -104,89 +94,117 @@ async function getAIResponse(userInput: string): Promise<string> {
   }
 }
 
-function getWebviewContent(): string {
+function getWebviewContent(cspSource?: string): string {
   return `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>AI Chat</title>
-          <style>
-              body {
-                  font-family: Arial, sans-serif;
-                  padding: 10px;
-              }
-              .chat-container {
-                  display: flex;
-                  flex-direction: column;
-                  height: 90vh;
-              }
-              .chat-messages {
-                  flex: 1;
-                  overflow-y: auto;
-                  border: 1px solid #ccc;
-                  padding: 10px;
-                  margin-bottom: 10px;
-              }
-              .chat-input {
-                  display: flex;
-              }
-              .chat-input textarea {
-                  flex: 1;
-                  height: 50px;
-                  padding: 5px;
-              }
-              .chat-input button {
-                  padding: 5px 10px;
-                  margin-left: 5px;
-              }
-          </style>
-      </head>
-      <body>
-          <div class="chat-container">
-              <div class="chat-messages" id="chatMessages"></div>
-              <div class="chat-input">
-                  <textarea id="chatInput" placeholder="Type your message..."></textarea>
-                  <button id="sendButton">Send</button>
-              </div>
-          </div>
-          <script>
-              const vscode = acquireVsCodeApi();
+     <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>AI Chat</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                padding: 10px;
+                background-color: #1f1f1f;
+            }
+            .chat-container {
+                display: flex;
+                flex-direction: column;
+                height: 90vh;
+            }
+            .chat-messages {
+                flex: 1;
+                overflow-y: auto;
+                border: 1px solid #ccc;
+                padding: 10px;
+                margin-bottom: 10px;
+                
+            }
+            .message {
+                margin-bottom: 10px;
+                padding: 5px;
+                border-radius: 5px;
+            }
+            .user-message {
+                
+                align-self: flex-end;
+                text-align: right;
+            }
+            .ai-message {
+                
+                align-self: flex-start;
+                text-align: left;
+            }
+            .chat-input {
+                display: flex;
+            }
+            .chat-input textarea {
+                flex: 1;
+                height: 50px;
+                padding: 5px;
+                background-color: #1f1f1f;
+               color: rgb(244, 244, 244);
+            }
+            .chat-input button {
+                padding: 5px 10px;
+                margin-left: 5px;
+                background-color: #1f1f1f;
+                color: rgb(244, 244, 244);
+            }
+            .loading {
+                font-size: 0.9em;
+                color: gray;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="chat-container">
+            <div class="chat-messages" id="chatMessages"></div>
+            <div class="chat-input">
+                <textarea id="chatInput" placeholder="Type your message..."></textarea>
+                <button id="sendButton">Send</button>
+            </div>
+        </div>
+        <script>
+            const vscode = acquireVsCodeApi();
+            const chatMessages = document.getElementById("chatMessages");
 
-              // Handle the send button click
-              document.getElementById("sendButton").addEventListener("click", () => {
-    const input = document.getElementById("chatInput");
-    const message = input.value.trim();
-    if (message) {
-        console.log("Sending message:", message); // Debug log
-        vscode.postMessage({ type: "message", text: message });
-        input.value = ""; // Clear the input
-    }
-});
+            function addMessage(content, isUser = false, isLoading = false) {
+                const messageDiv = document.createElement("div");
+                messageDiv.className = isUser
+                    ? "message user-message"
+                    : "message ai-message";
+                messageDiv.textContent = isLoading ? "..." : content;
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll
+            }
 
-              // Listen for messages from the extension
-             window.addEventListener("message", (event) => {
-    const message = event.data;
-    console.log("Received message:", message); // Debug log
-    if (message.text) {
-        const chatMessages = document.getElementById("chatMessages");
-        const newMessage = document.createElement("div");
-        newMessage.textContent = message.text;
-        newMessage.style.marginBottom = "5px";
-        chatMessages.appendChild(newMessage);
+            document.getElementById("sendButton").addEventListener("click", () => {
+                const input = document.getElementById("chatInput");
+                const message = input.value.trim();
+                if (message) {
+                    addMessage(message, true); // Add user message
+                    addMessage("", false, true); // Add loading indicator
+                    vscode.postMessage({ type: "message", text: message });
+                    input.value = "";
+                }
+            });
 
-        // Auto-scroll to the bottom
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
-});
+            window.addEventListener("message", (event) => {
+                const message = event.data;
+                const loadingIndicator = chatMessages.querySelector(
+                    ".ai-message:last-child"
+                );
+                if (loadingIndicator) loadingIndicator.remove(); // Remove loading
 
-
-
-
-          </script>
-      </body>
-      </html>
+                if (message.text) {
+                    addMessage(message.text, false); // Add AI message
+                }
+            });
+        </script>
+    </body>
+    </html>
   `;
 }
 
