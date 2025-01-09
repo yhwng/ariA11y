@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import * as dotenv from "dotenv";
 import * as path from "path";
 import axios from "axios";
+import * as fs from "fs";
 
 dotenv.config({ path: path.join(__dirname, "..", ".env") }); // Load .env file
 
@@ -25,7 +26,11 @@ function createChatWebview(context: vscode.ExtensionContext) {
     }
   );
 
-  panel.webview.html = getWebviewContent();
+  const filePath: vscode.Uri = vscode.Uri.file(
+    path.join(context.extensionPath, "src", "chat.html")
+  );
+
+  panel.webview.html = fs.readFileSync(filePath.fsPath, "utf8");
 
   panel.webview.onDidReceiveMessage(
     async (message) => {
@@ -35,9 +40,9 @@ function createChatWebview(context: vscode.ExtensionContext) {
           case "message":
             const aiResponse = await getAIResponse(message.text);
             console.log("Sending message to Webview:", {
-              text: `AI: ${aiResponse}`,
+              text: `${aiResponse}`,
             });
-            panel.webview.postMessage({ text: `AI: ${aiResponse}` });
+            panel.webview.postMessage({ text: `${aiResponse}` });
             break;
         }
       } catch (error) {
@@ -53,34 +58,19 @@ function createChatWebview(context: vscode.ExtensionContext) {
 }
 
 async function getAIResponse(userInput: string): Promise<string> {
-  const endpoint = process.env.AZURE_ENDPOINT;
-  const apiKey = process.env.AZURE_API_KEY;
-  const deploymentName = "gpt-4o-mini";
-  const apiVersion = "2024-08-01-preview";
-
-  const url = `${endpoint}/openai/deployments/${deploymentName}/chat/completions?api-version=${apiVersion}`;
-
+  const url = "http://localhost:5000/search";
   try {
     const response = await axios.post(
       url,
-      {
-        messages: [
-          { role: "system", content: "You are a helpful assistant." },
-          { role: "user", content: userInput },
-        ],
-        max_tokens: 50,
-        temperature: 0.7,
-      },
+      { message: userInput },
       {
         headers: {
           "Content-Type": "application/json",
-          "api-key": apiKey,
         },
       }
     );
-
     console.log("Raw Azure OpenAI Response:", response.data);
-    return response.data.choices[0].message.content.trim();
+    return response.data;
   } catch (error) {
     if (axios.isAxiosError(error)) {
       console.error(
@@ -92,120 +82,6 @@ async function getAIResponse(userInput: string): Promise<string> {
     }
     throw new Error("Failed to fetch response from Azure OpenAI.");
   }
-}
-
-function getWebviewContent(cspSource?: string): string {
-  return `
-     <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>AI Chat</title>
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                padding: 10px;
-                background-color: #1f1f1f;
-            }
-            .chat-container {
-                display: flex;
-                flex-direction: column;
-                height: 90vh;
-            }
-            .chat-messages {
-                flex: 1;
-                overflow-y: auto;
-                border: 1px solid #ccc;
-                padding: 10px;
-                margin-bottom: 10px;
-                
-            }
-            .message {
-                margin-bottom: 10px;
-                padding: 5px;
-                border-radius: 5px;
-            }
-            .user-message {
-                
-                align-self: flex-end;
-                text-align: right;
-            }
-            .ai-message {
-                
-                align-self: flex-start;
-                text-align: left;
-            }
-            .chat-input {
-                display: flex;
-            }
-            .chat-input textarea {
-                flex: 1;
-                height: 50px;
-                padding: 5px;
-                background-color: #1f1f1f;
-               color: rgb(244, 244, 244);
-            }
-            .chat-input button {
-                padding: 5px 10px;
-                margin-left: 5px;
-                background-color: #1f1f1f;
-                color: rgb(244, 244, 244);
-            }
-            .loading {
-                font-size: 0.9em;
-                color: gray;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="chat-container">
-            <div class="chat-messages" id="chatMessages"></div>
-            <div class="chat-input">
-                <textarea id="chatInput" placeholder="Type your message..."></textarea>
-                <button id="sendButton">Send</button>
-            </div>
-        </div>
-        <script>
-            const vscode = acquireVsCodeApi();
-            const chatMessages = document.getElementById("chatMessages");
-
-            function addMessage(content, isUser = false, isLoading = false) {
-                const messageDiv = document.createElement("div");
-                messageDiv.className = isUser
-                    ? "message user-message"
-                    : "message ai-message";
-                messageDiv.textContent = isLoading ? "..." : content;
-                chatMessages.appendChild(messageDiv);
-                chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll
-            }
-
-            document.getElementById("sendButton").addEventListener("click", () => {
-                const input = document.getElementById("chatInput");
-                const message = input.value.trim();
-                if (message) {
-                    addMessage(message, true); // Add user message
-                    addMessage("", false, true); // Add loading indicator
-                    vscode.postMessage({ type: "message", text: message });
-                    input.value = "";
-                }
-            });
-
-            window.addEventListener("message", (event) => {
-                const message = event.data;
-                const loadingIndicator = chatMessages.querySelector(
-                    ".ai-message:last-child"
-                );
-                if (loadingIndicator) loadingIndicator.remove(); // Remove loading
-
-                if (message.text) {
-                    addMessage(message.text, false); // Add AI message
-                }
-            });
-        </script>
-    </body>
-    </html>
-  `;
 }
 
 // This method is called when your extension is deactivated
