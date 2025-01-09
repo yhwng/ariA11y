@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ariA11y</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 10px;
+        background-color: #252526;
+      }
+      .chat-container {
+        display: flex;
+        flex-direction: column;
+        height: 90vh;
+      }
+      .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        padding: 10px;
+        margin-bottom: 10px;
+      }
+      .message {
+        border-radius: 5px;
+      }
+      .user-message {
+        align-self: flex-start;
+        text-align: left;
+      }
+      .ai-message {
+        align-self: flex-start;
+        text-align: left;
+      }
+      .chat-input {
+        display: flex;
+      }
+      .chat-input textarea {
+        flex: 1;
+        height: 50px;
+        padding: 5px;
+        background-color: #252526;
+        color: rgb(244, 244, 244);
+      }
+      .chat-input button {
+        padding: 5px 10px;
+        margin-left: 5px;
+        background-color: #252526;
+        color: rgb(244, 244, 244);
+      }
+      .loading {
+        font-size: 0.9em;
+        color: gray;
+      }
+      code {
+        font: Monaco, "Courier New", "DejaVu Sans Mono",
+          "Bitstream Vera Sans Mono", monospace;
+        -webkit-border-radius: 3px;
+        -moz-border-radius: 3px;
+        border-radius: 3px;
+        -moz-background-clip: padding;
+        -webkit-background-clip: padding-box;
+        background-clip: padding-box;
+        border: 1px solid #1e1e1e;
+        background-color: #1e1e1e;
+        padding: 0px 3px;
+        display: inline-block;
+        margin: 0px;
+      }
+      pre {
+        border: 1px solid #1e1e1e;
+        line-height: 1.2em;
+        font: Monaco, "Courier New", "DejaVu Sans Mono",
+          "Bitstream Vera Sans Mono", monospace;
+        padding: 10px;
+        overflow: auto;
+        -webkit-border-radius: 3px;
+        -moz-border-radius: 3px;
+        border-radius: 3px;
+        -moz-background-clip: padding;
+        -webkit-background-clip: padding-box;
+        background-clip: padding-box;
+        background-color: #1e1e1e;
+        margin: 0px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="chat-container">
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-input">
+        <textarea id="chatInput" placeholder="Type your message..."></textarea>
+        <button id="sendButton">Send</button>
+      </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+      const vscode = acquireVsCodeApi();
+      const chatMessages = document.getElementById("chatMessages");
+
+      function addMessage(content, isUser = false, isLoading = false) {
+        const messageDiv = document.createElement("div");
+        messageDiv.className = isUser
+          ? "message user-message"
+          : "message ai-message";
+        messageDiv.textContent = isLoading ? "..." : content;
+        isUser
+          ? (messageDiv.innerHTML = marked.parse("```\n" + content + "\n```"))
+          : (messageDiv.innerHTML = marked.parse(content));
+        chatMessages.appendChild(messageDiv);
+
+        chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll
+      }
+
+      document.getElementById("sendButton").addEventListener("click", () => {
+        const input = document.getElementById("chatInput");
+        const message = input.value.trim();
+        if (message) {
+          addMessage("**User:**", false);
+          addMessage(message, true); // Add user message
+          addMessage("", false, true); // Add loading indicator
+          vscode.postMessage({ type: "message", text: message });
+          input.value = "";
+        }
+      });
+
+      window.addEventListener("message", (event) => {
+        const message = event.data;
+        const loadingIndicator = chatMessages.querySelector(
+          ".ai-message:last-child"
+        );
+        if (loadingIndicator) loadingIndicator.remove(); // Remove loading
+
+        if (message.text) {
+          addMessage("---", false);
+          addMessage(message.text, false); // Add AI message
+          addMessage("---", false);
+        }
+      });
+    </script>
+  </body>
+</html>
