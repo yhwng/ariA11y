@@ -189,7 +189,9 @@ async function analyzeFileForIssues(): Promise<
   { range: vscode.Range; message: string }[]
 > {
   const editor = vscode.window.activeTextEditor;
-  if (!editor) return [];
+  if (!editor) {
+    return [];
+  }
 
   const document = editor.document;
   const fileContent = document.getText(); // Get the entire file content
