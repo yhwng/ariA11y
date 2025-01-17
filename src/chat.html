@@ -104,12 +104,15 @@
         messageDiv.className = isUser
           ? "message user-message"
           : "message ai-message";
-        messageDiv.textContent = isLoading ? "..." : content;
-        isUser
-          ? (messageDiv.innerHTML = marked.parse("```\n" + content + "\n```"))
-          : (messageDiv.innerHTML = marked.parse(content));
-        chatMessages.appendChild(messageDiv);
 
+        // Render Markdown if not a loading indicator
+        if (!isLoading) {
+          messageDiv.innerHTML = marked.parse(content);
+        } else {
+          messageDiv.textContent = "...";
+        }
+
+        chatMessages.appendChild(messageDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll
       }
 
@@ -117,7 +120,6 @@
         const input = document.getElementById("chatInput");
         const message = input.value.trim();
         if (message) {
-          addMessage("**User:**", false);
           addMessage(message, true); // Add user message
           addMessage("", false, true); // Add loading indicator
           vscode.postMessage({ type: "message", text: message });
@@ -127,15 +129,26 @@
 
       window.addEventListener("message", (event) => {
         const message = event.data;
-        const loadingIndicator = chatMessages.querySelector(
-          ".ai-message:last-child"
-        );
-        if (loadingIndicator) loadingIndicator.remove(); // Remove loading
 
+        // Handle selection message
+        if (message.type === "selection") {
+          const input = document.getElementById("chatInput");
+          //input.value = message.text;
+          addMessage("**Selected Code:**", false);
+          addMessage(message.text, true);
+
+          // Automatically send the selected code to the AI
+          addMessage("", false, true); // Add loading indicator
+          vscode.postMessage({ type: "message", text: message.text });
+        }
+
+        // Handle AI response
         if (message.text) {
-          addMessage("---", false);
+          const loadingIndicator = chatMessages.querySelector(
+            ".ai-message:last-child"
+          );
+          if (loadingIndicator) loadingIndicator.remove(); // Remove loading
           addMessage(message.text, false); // Add AI message
-          addMessage("---", false);
         }
       });
     </script>
