@@ -129,24 +129,34 @@ function createChatWebview(
       async (message) => {
         console.log("Message received from Webview:", message); // Debugging log
         try {
-          if (message.type === "message") {
-            const response = await getAIResponse(message.text); // Send to AI
+          if (message) {
+            const response = await getAIResponse(message.text, message.type); // Send to AI
             console.log("AI Response:", response); // Debugging log
 
-            // Use full_response for the chat
-            const aiChatResponse = response.full_responses;
+            const aiChatResponse =
+              message.type === "search" ? response.full_responses : response;
 
-            panel?.webview.postMessage({ text: aiChatResponse }); // Send back to Webview
+            panel?.webview.postMessage({
+              type: message.type,
+              text: aiChatResponse,
+            }); // Send back to Webview
           }
         } catch (error: unknown) {
           if (axios.isAxiosError(error)) {
             panel?.webview.postMessage({
+              type: "error",
               text: `Error: ${error.response?.data || error.message}`,
             });
           } else if (error instanceof Error) {
-            panel?.webview.postMessage({ text: `Error: ${error.message}` });
+            panel?.webview.postMessage({
+              type: "error",
+              text: `Error: ${error.message}`,
+            });
           } else {
-            panel?.webview.postMessage({ text: "An unknown error occurred." });
+            panel?.webview.postMessage({
+              type: "error",
+              text: "An unknown error occurred.",
+            });
           }
         }
       },
@@ -163,9 +173,13 @@ function createChatWebview(
 // getAIResponse Function
 // ========================================================
 
-async function getAIResponse(userInput: string): Promise<any> {
-  console.log("Sending query to AI backend:", userInput); // Debugging log
-  const url = "http://localhost:5000/search";
+async function getAIResponse(userInput: string, type: string): Promise<any> {
+  console.log("Sending query to backend:", userInput); // Debugging log
+  const url =
+    type === "search"
+      ? "http://localhost:5000/search"
+      : "http://localhost:5000/chat";
+  console.log("url:", url);
   try {
     const response = await axios.post(
       url,
@@ -176,7 +190,7 @@ async function getAIResponse(userInput: string): Promise<any> {
         },
       }
     );
-    console.log("AI Backend Response:", response.data); // Debugging log
+    console.log("Response:", response.data); // Debugging log
     return response.data;
   } catch (error: unknown) {
     if (axios.isAxiosError(error)) {

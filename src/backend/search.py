@@ -4,7 +4,6 @@ import openai
 import dotenv
 from flask import Flask, request
 import json
-import re
 
 dotenv.load_dotenv()
 
@@ -114,4 +113,83 @@ def search():
         print("Error in backend:", e)
         return {"error": str(e)}, 500
 
+@app.post("/chat")
+def chat():
     
+    data = request.json
+
+    client = openai.AzureOpenAI(  
+        azure_endpoint = openai_endpoint,  
+        api_key = openai_key,  
+        api_version = "2024-08-01-preview",  
+    )
+
+    system_message = """
+        You are an intelligent assistant that helps people to understand web accessibility.
+        Your task is to answer questions related to web accessibility based on the Web Content Accessibility Guidelines (WCAG) 2.2. You must list the source for each fact you use, after the word 'Learn More'. 
+        If you cannot answer using the sources, say you don't know. Do not use any external sources.
+        Use 'you' to refer to the individual asking the questions even if they ask with 'I'.
+
+        USER MESSAGE:
+        'What is success criterion 1.4.3?'
+
+        ANSWER:
+        'Success Criterion 1.4.3, titled "Contrast (Minimum)," requires that the contrast ratio between text (and images of text) and its background must be at least 4.5:1 for normal text and 3:1 for large text (18pt and larger or 14pt bold) to ensure sufficient visibility for users with visual impairments.\nThis criterion is essential for improving the readability of text on web pages, allowing users with low vision or color deficiencies to access content more effectively . If the contrast ratio does not meet these requirements, it can lead to accessibility issues, making it difficult for some users to read the text.\n#### Learn More\n- https://www.w3.org/WAI/WCAG21/Understanding/contrast-minimum.html
+        """
+
+    user_message = data["message"]
+    print("Received message:", user_message[:100])  # Log the first 100 characters
+
+    chat_prompt = [
+        {
+            "role": "system",
+            "content": system_message
+        },
+        {   
+            "role": "user",
+            "content": user_message
+        }
+    ]  
+        
+    # Generate the completion  
+    try:
+        completion = client.chat.completions.create(  
+            model=openai_deployment,  
+            messages=chat_prompt, 
+            seed=42, 
+            max_tokens=16384,  
+            temperature=0.3,  
+            top_p=0.95,   
+            extra_body={
+            "data_sources": [{
+                "type": "azure_search",
+                "parameters": {
+                    "endpoint": search_endpoint,
+                    "index_name": search_index,
+                    "semantic_configuration": "default",
+                    "query_type": "vector_semantic_hybrid",
+                    "in_scope": True,
+                    "role_information": system_message,
+                    "strictness": 3,
+                    "top_n_documents": 5,
+                    "authentication": {
+                    "type": "api_key",
+                    "key": search_key
+                    },
+                    "embedding_dependency": {
+                    "type": "deployment_name",
+                    "deployment_name": "text-embedding-ada-002"
+                    }
+                }
+                }]
+            }
+        )
+
+        ai_response = completion.choices[0].message.content
+        print("AI Response:", ai_response)  
+        
+        return ai_response
+
+    except Exception as e:
+        print("Error in backend:", e)
+        return {"error": str(e)}, 500
