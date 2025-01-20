@@ -116,13 +116,18 @@
         chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll
       }
 
+      function sendMessage(message) {
+        addMessage("**User:**", false);
+        addMessage("```\n" + message + "\n```", true); // Add user message
+        addMessage("", false, true); // Add loading indicator
+        vscode.postMessage({ type: "message", text: message });
+      }
+
       document.getElementById("sendButton").addEventListener("click", () => {
         const input = document.getElementById("chatInput");
-        const message = input.value.trim();
+        const message = input.value;
         if (message) {
-          addMessage(message, true); // Add user message
-          addMessage("", false, true); // Add loading indicator
-          vscode.postMessage({ type: "message", text: message });
+          sendMessage(message);
           input.value = "";
         }
       });
@@ -132,14 +137,7 @@
 
         // Handle selection message
         if (message.type === "selection") {
-          const input = document.getElementById("chatInput");
-          //input.value = message.text;
-          addMessage("**Selected Code:**", false);
-          addMessage(message.text, true);
-
-          // Automatically send the selected code to the AI
-          addMessage("", false, true); // Add loading indicator
-          vscode.postMessage({ type: "message", text: message.text });
+          sendMessage(message.text);
         }
 
         // Handle AI response
@@ -148,7 +146,11 @@
             ".ai-message:last-child"
           );
           if (loadingIndicator) loadingIndicator.remove(); // Remove loading
-          addMessage(message.text, false); // Add AI message
+          addMessage("---", false);
+          message.text.forEach((response) => {
+            addMessage(response, false);
+            addMessage("---", false);
+          });
         }
       });
     </script>
