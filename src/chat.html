@@ -104,38 +104,53 @@
         messageDiv.className = isUser
           ? "message user-message"
           : "message ai-message";
-        messageDiv.textContent = isLoading ? "..." : content;
-        isUser
-          ? (messageDiv.innerHTML = marked.parse("```\n" + content + "\n```"))
-          : (messageDiv.innerHTML = marked.parse(content));
-        chatMessages.appendChild(messageDiv);
 
+        // Render Markdown if not a loading indicator
+        if (!isLoading) {
+          messageDiv.innerHTML = marked.parse(content);
+        } else {
+          messageDiv.textContent = "...";
+        }
+
+        chatMessages.appendChild(messageDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll
+      }
+
+      function sendMessage(message) {
+        addMessage("**User:**", false);
+        addMessage("```\n" + message + "\n```", true); // Add user message
+        addMessage("", false, true); // Add loading indicator
+        vscode.postMessage({ type: "message", text: message });
       }
 
       document.getElementById("sendButton").addEventListener("click", () => {
         const input = document.getElementById("chatInput");
-        const message = input.value.trim();
+        const message = input.value;
         if (message) {
-          addMessage("**User:**", false);
-          addMessage(message, true); // Add user message
-          addMessage("", false, true); // Add loading indicator
-          vscode.postMessage({ type: "message", text: message });
+          sendMessage(message);
           input.value = "";
         }
       });
 
       window.addEventListener("message", (event) => {
         const message = event.data;
-        const loadingIndicator = chatMessages.querySelector(
-          ".ai-message:last-child"
-        );
-        if (loadingIndicator) loadingIndicator.remove(); // Remove loading
 
+        // Handle selection message
+        if (message.type === "selection") {
+          sendMessage(message.text);
+        }
+
+        // Handle AI response
         if (message.text) {
+          const loadingIndicator = chatMessages.querySelector(
+            ".ai-message:last-child"
+          );
+          if (loadingIndicator) loadingIndicator.remove(); // Remove loading
           addMessage("---", false);
-          addMessage(message.text, false); // Add AI message
-          addMessage("---", false);
+          message.text.forEach((response) => {
+            addMessage(response, false);
+            addMessage("---", false);
+          });
         }
       });
     </script>

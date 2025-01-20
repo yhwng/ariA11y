@@ -9,15 +9,34 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onLanguage"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "ai-chat.openChat",
         "title": "Open AI Chat"
+      },
+      {
+        "command": "aria11y.underlineIssues",
+        "title": "Underline Accessibility Issues"
+      },
+      {
+        "command": "aria11y.chatWithSelection",
+        "title": "Chat with AI about Selection"
       }
-    ]
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "aria11y.chatWithSelection",
+          "when": "editorHasSelection",
+          "group": "navigation"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
@@ -31,7 +50,6 @@
     "@types/axios": "^0.9.36",
     "@types/mocha": "^10.0.10",
     "@types/node": "^20.17.11",
-    "@types/vscode": "^1.96.0",
     "@typescript-eslint/eslint-plugin": "^8.17.0",
     "@typescript-eslint/parser": "^8.17.0",
     "@vscode/test-cli": "^0.0.10",
