@@ -116,18 +116,18 @@
         chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll
       }
 
-      function sendMessage(message) {
+      function sendMessage(message, type) {
         addMessage("**User:**", false);
         addMessage("```\n" + message + "\n```", true); // Add user message
         addMessage("", false, true); // Add loading indicator
-        vscode.postMessage({ type: "message", text: message });
+        vscode.postMessage({ type: type, text: message });
       }
 
       document.getElementById("sendButton").addEventListener("click", () => {
         const input = document.getElementById("chatInput");
         const message = input.value;
         if (message) {
-          sendMessage(message);
+          sendMessage(message, "chat");
           input.value = "";
         }
       });
@@ -137,7 +137,7 @@
 
         // Handle selection message
         if (message.type === "selection") {
-          sendMessage(message.text);
+          sendMessage(message.text, "search");
         }
 
         // Handle AI response
@@ -147,10 +147,15 @@
           );
           if (loadingIndicator) loadingIndicator.remove(); // Remove loading
           addMessage("---", false);
-          message.text.forEach((response) => {
-            addMessage(response, false);
+          if (message.type === "search") {
+            message.text.forEach((response) => {
+              addMessage(response, false);
+              addMessage("---", false);
+            });
+          } else if (message.type === "chat" || message.type === "error") {
+            addMessage(message.text, false);
             addMessage("---", false);
-          });
+          }
         }
       });
     </script>
