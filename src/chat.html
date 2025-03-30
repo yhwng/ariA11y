@@ -84,9 +84,27 @@
         background-color: #1e1e1e;
         margin: 0px;
       }
+      .selectpicker {
+        font: Monaco, "Courier New", "DejaVu Sans Mono",
+          "Bitstream Vera Sans Mono", monospace;
+        background-color: #1e1e1e;
+        color: #ccc;
+      }
     </style>
   </head>
   <body>
+    <div>
+      <select
+        class="selectpicker"
+        data-live-search="true"
+        data-live-search-placeholder="Search ..."
+        title="Live search"
+      >
+        <option>Analyse Code</option>
+        <option>Chat</option>
+        <option>Strict Mode (RAG)</option>
+      </select>
+    </div>
     <div class="chat-container">
       <div class="chat-messages" id="chatMessages"></div>
       <div class="chat-input">
