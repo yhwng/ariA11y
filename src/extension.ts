@@ -130,15 +130,20 @@ function createChatWebview(
         console.log("Message received from Webview:", message); // Debugging log
         try {
           if (message) {
-            const response = await getAIResponse(message.text, message.type); // Send to AI
+            const response = await getAIResponse(
+              message.text,
+              message.type,
+              message.rag
+            ); // Send to AI
             console.log("AI Response:", response); // Debugging log
 
             const aiChatResponse =
-              message.type === "search" ? response.full_responses : response;
+              message.type === "code" ? response.full_responses : response;
 
             panel?.webview.postMessage({
               type: message.type,
               text: aiChatResponse,
+              rag: message.rag,
             }); // Send back to Webview
           }
         } catch (error: unknown) {
@@ -146,16 +151,19 @@ function createChatWebview(
             panel?.webview.postMessage({
               type: "error",
               text: `Error: ${error.response?.data || error.message}`,
+              rag: false,
             });
           } else if (error instanceof Error) {
             panel?.webview.postMessage({
               type: "error",
               text: `Error: ${error.message}`,
+              rag: false,
             });
           } else {
             panel?.webview.postMessage({
               type: "error",
               text: "An unknown error occurred.",
+              rag: false,
             });
           }
         }
@@ -165,7 +173,10 @@ function createChatWebview(
     );
   }
   if (selection && selection.trim() !== "") {
-    panel.webview.postMessage({ type: "selection", text: selection });
+    panel.webview.postMessage({
+      type: "selection",
+      text: selection,
+    });
   }
 }
 
@@ -173,17 +184,21 @@ function createChatWebview(
 // getAIResponse Function
 // ========================================================
 
-async function getAIResponse(userInput: string, type: string): Promise<any> {
+async function getAIResponse(
+  userInput: string,
+  type: string,
+  rag: boolean
+): Promise<any> {
   console.log("Sending query to backend:", userInput); // Debugging log
   const url =
-    type === "search"
-      ? "http://localhost:5000/search"
+    type === "code"
+      ? "http://localhost:5000/code"
       : "http://localhost:5000/chat";
   console.log("url:", url);
   try {
     const response = await axios.post(
       url,
-      { message: userInput },
+      { message: userInput, rag: rag },
       {
         headers: {
           "Content-Type": "application/json",
@@ -224,8 +239,9 @@ async function analyzeFileForIssues(): Promise<
   const fileContent = document.getText(); // Get the entire file content
 
   try {
-    const response = await axios.post("http://localhost:5000/search", {
+    const response = await axios.post("http://localhost:5000/code", {
       message: fileContent,
+      rag: true,
     });
     console.log("fileContent", fileContent);
     const errorLines = response.data.error_snippets;

@@ -84,6 +84,13 @@
         background-color: #1e1e1e;
         margin: 0px;
       }
+      .selectpicker {
+        font: Monaco, "Courier New", "DejaVu Sans Mono",
+          "Bitstream Vera Sans Mono", monospace;
+        background-color: #1e1e1e;
+        color: #ccc;
+        margin-left: 5px;
+      }
     </style>
   </head>
   <body>
@@ -91,6 +98,30 @@
       <div class="chat-messages" id="chatMessages"></div>
       <div class="chat-input">
         <textarea id="chatInput" placeholder="Type your message..."></textarea>
+        <div class="options">
+          <select
+            class="selectpicker"
+            data-live-search="true"
+            data-live-search-placeholder="Search ..."
+            title="Live search"
+            id="type"
+          >
+            <option value="code">Code</option>
+            <option value="chat">Chat</option>
+          </select>
+          <div class="form-check form-check-reverse">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              value=""
+              id="rag"
+              checked
+            />
+            <label class="form-check-label rag-btn" for="rag">
+              Strict-RAG
+            </label>
+          </div>
+        </div>
         <button id="sendButton">Send</button>
       </div>
     </div>
@@ -116,28 +147,32 @@
         chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll
       }
 
-      function sendMessage(message, type) {
+      function sendMessage(message, type, rag) {
         addMessage("**User:**", false);
         addMessage("```\n" + message + "\n```", true); // Add user message
         addMessage("", false, true); // Add loading indicator
-        vscode.postMessage({ type: type, text: message });
+        vscode.postMessage({ type: type, text: message, rag: rag });
       }
 
       document.getElementById("sendButton").addEventListener("click", () => {
         const input = document.getElementById("chatInput");
+        const type = document.getElementById("type").value;
+        const rag = document.getElementById("rag").checked;
         const message = input.value;
         if (message) {
-          sendMessage(message, "chat");
+          sendMessage(message, type, rag);
           input.value = "";
         }
       });
 
       window.addEventListener("message", (event) => {
         const message = event.data;
+        const type = document.getElementById("type").value;
+        const rag = document.getElementById("rag").checked;
 
         // Handle selection message
         if (message.type === "selection") {
-          sendMessage(message.text, "search");
+          sendMessage(message.text, "code", rag);
         }
 
         // Handle AI response
@@ -147,7 +182,7 @@
           );
           if (loadingIndicator) loadingIndicator.remove(); // Remove loading
           addMessage("---", false);
-          if (message.type === "search") {
+          if (message.type === "code") {
             message.text.forEach((response) => {
               addMessage(response, false);
               addMessage("---", false);

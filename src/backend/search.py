@@ -16,16 +16,73 @@ search_index = os.environ.get("AZURE_AI_SEARCH_INDEX")
 
 app = Flask(__name__)
 
-@app.post("/search")
-def search():
-
-    data = request.json
+def generate_with_rag(chat_prompt, system_message):
 
     client = openai.AzureOpenAI(  
         azure_endpoint = openai_endpoint,  
         api_key = openai_key,  
         api_version = "2024-08-01-preview",  
     )
+
+    return client.chat.completions.create(  
+        model=openai_deployment,  
+        messages=chat_prompt, 
+        seed=42, 
+        max_tokens=16384,  
+        temperature=0.3,  
+        top_p=0.95,   
+        extra_body={
+        "data_sources": [{
+            "type": "azure_search",
+            "parameters": {
+                "endpoint": search_endpoint,
+                "index_name": search_index,
+                "semantic_configuration": "default",
+                "query_type": "vector_semantic_hybrid",
+                "in_scope": True,
+                "role_information": system_message,
+                "strictness": 3,
+                "top_n_documents": 5,
+                "authentication": {
+                "type": "api_key",
+                "key": search_key
+                },
+                "embedding_dependency": {
+                "type": "deployment_name",
+                "deployment_name": "text-embedding-ada-002"
+                }
+            }
+            }]
+        }
+    )
+
+def generate_without_rag(chat_prompt):
+
+    client = openai.AzureOpenAI(  
+        azure_endpoint = openai_endpoint,  
+        api_key = openai_key,  
+        api_version = "2024-08-01-preview",  
+    )
+
+    return client.chat.completions.create(  
+        model=openai_deployment,  
+        messages=chat_prompt, 
+        seed=42, 
+        max_tokens=16384,  
+        temperature=0.3,  
+        top_p=0.95
+    )
+
+@app.post("/code")
+def code():
+
+    data = request.json
+
+    user_message = data["message"]
+    rag = data["rag"]
+
+    print("Received message:", user_message[:100])  # Log the first 100 characters
+    print("RAG:", rag)
 
     system_message = """
         You are an intelligent assistant that helps people to identify web accessibility issues.
@@ -35,7 +92,7 @@ def search():
         - If no issue is found, you should return an empty string as code snippet. You do no need to provide any description, fixes, nor sources in this case.
         If you cannot answer using the sources, say you don't know. Do not use any external sources.
         Use 'you' to refer to the individual asking the questions even if they ask with 'I'.
-        Return your answer in json format. Use below example to answer. Follow the same format strictly.
+        Use below example to answer. Follow the same format strictly. Do not return answer in json.
 
         USER MESSAGE:
         '<label>Username<input autocomplete="badname"/></label>'
@@ -54,10 +111,7 @@ def search():
             "error_snippets": [""],
             "full_responses": ["No issues found."]
         }
-        """
-
-    user_message = data["message"]
-    print("Received file content:", user_message[:100])  # Log the first 100 characters
+    """
 
     chat_prompt = [
         {
@@ -72,37 +126,7 @@ def search():
         
     # Generate the completion  
     try:
-        completion = client.chat.completions.create(  
-            model=openai_deployment,  
-            messages=chat_prompt, 
-            seed=42, 
-            max_tokens=16384,  
-            temperature=0.3,  
-            top_p=0.95,   
-            extra_body={
-            "data_sources": [{
-                "type": "azure_search",
-                "parameters": {
-                    "endpoint": search_endpoint,
-                    "index_name": search_index,
-                    "semantic_configuration": "default",
-                    "query_type": "vector_semantic_hybrid",
-                    "in_scope": True,
-                    "role_information": system_message,
-                    "strictness": 3,
-                    "top_n_documents": 5,
-                    "authentication": {
-                    "type": "api_key",
-                    "key": search_key
-                    },
-                    "embedding_dependency": {
-                    "type": "deployment_name",
-                    "deployment_name": "text-embedding-ada-002"
-                    }
-                }
-                }]
-            }
-        )
+        completion = generate_with_rag(chat_prompt, system_message) if rag else generate_without_rag(chat_prompt)
 
         ai_response = completion.choices[0].message.content
         print("AI Response:", ai_response)  
@@ -118,11 +142,11 @@ def chat():
     
     data = request.json
 
-    client = openai.AzureOpenAI(  
-        azure_endpoint = openai_endpoint,  
-        api_key = openai_key,  
-        api_version = "2024-08-01-preview",  
-    )
+    user_message = data["message"]
+    rag = data["rag"]
+
+    print("Received message:", user_message[:100])  # Log the first 100 characters
+    print("RAG:", rag)
 
     system_message = """
         You are an intelligent assistant that helps people to understand web accessibility.
@@ -135,10 +159,7 @@ def chat():
 
         ANSWER:
         'Success Criterion 1.4.3, titled "Contrast (Minimum)," requires that the contrast ratio between text (and images of text) and its background must be at least 4.5:1 for normal text and 3:1 for large text (18pt and larger or 14pt bold) to ensure sufficient visibility for users with visual impairments.\nThis criterion is essential for improving the readability of text on web pages, allowing users with low vision or color deficiencies to access content more effectively . If the contrast ratio does not meet these requirements, it can lead to accessibility issues, making it difficult for some users to read the text.\n#### Learn More\n- https://www.w3.org/WAI/WCAG21/Understanding/contrast-minimum.html
-        """
-
-    user_message = data["message"]
-    print("Received message:", user_message[:100])  # Log the first 100 characters
+    """
 
     chat_prompt = [
         {
@@ -153,37 +174,7 @@ def chat():
         
     # Generate the completion  
     try:
-        completion = client.chat.completions.create(  
-            model=openai_deployment,  
-            messages=chat_prompt, 
-            seed=42, 
-            max_tokens=16384,  
-            temperature=0.3,  
-            top_p=0.95,   
-            extra_body={
-            "data_sources": [{
-                "type": "azure_search",
-                "parameters": {
-                    "endpoint": search_endpoint,
-                    "index_name": search_index,
-                    "semantic_configuration": "default",
-                    "query_type": "vector_semantic_hybrid",
-                    "in_scope": True,
-                    "role_information": system_message,
-                    "strictness": 3,
-                    "top_n_documents": 5,
-                    "authentication": {
-                    "type": "api_key",
-                    "key": search_key
-                    },
-                    "embedding_dependency": {
-                    "type": "deployment_name",
-                    "deployment_name": "text-embedding-ada-002"
-                    }
-                }
-                }]
-            }
-        )
+        completion = generate_with_rag(chat_prompt, system_message) if rag else generate_without_rag(chat_prompt)
 
         ai_response = completion.choices[0].message.content
         print("AI Response:", ai_response)  
