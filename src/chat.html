@@ -89,11 +89,22 @@
           "Bitstream Vera Sans Mono", monospace;
         background-color: #1e1e1e;
         color: #ccc;
-        margin-left: 5px;
       }
     </style>
   </head>
   <body>
+    <div>
+      <select
+        class="selectpicker"
+        data-live-search="true"
+        data-live-search-placeholder="Search ..."
+        title="Live search"
+      >
+        <option>Analyse Code</option>
+        <option>Chat</option>
+        <option>Strict Mode (RAG)</option>
+      </select>
+    </div>
     <div class="chat-container">
       <div class="chat-messages" id="chatMessages"></div>
       <div class="chat-input">
